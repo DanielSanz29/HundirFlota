@@ -1,0 +1,105 @@
+// Creamos variables para referenciar el tablero y el mensaje en la pagina
+const tablero = document.getElementById("tablero");
+const mensaje = document.getElementById("mensaje");
+
+// hacemos el tablero
+let tableroJugador = Array(10).fill().map(() => Array(10).fill(0));
+// Lista de barcos a colocar, por tamaño
+let barcos = [4, 3, 3, 2, 2, 2];
+let turnoJuego = false;
+
+// creamos el tablero
+function crearTablero() {
+    tablero.innerHTML = ""; 
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+            const celda = document.createElement("div");
+            celda.classList.add("celda"); 
+            celda.dataset.fila = i;
+            celda.dataset.columna = j;
+            celda.addEventListener("click", manejarClic); // Agregamos el click
+            celda.style.backgroundColor = "#333"; // Ocultamos el mapa
+            tablero.appendChild(celda);
+        }
+    }
+    // mensaje de las indicaciones
+    mensaje.textContent = "Coloca tus barcos";
+    mensaje.style.fontSize = "2em";
+    mensaje.style.fontWeight = "bold";
+    mensaje.style.color = "white";
+}
+
+// click pra colocar barco o para atacar
+function manejarClic(event) {
+    const fila = parseInt(event.target.dataset.fila);
+    const columna = parseInt(event.target.dataset.columna);
+
+    if (!turnoJuego) {
+        colocarBarco(fila, columna);
+    } else {
+        atacar(fila, columna);
+    }
+}
+
+function colocarBarco(fila, columna) {
+    if (barcos.length === 0) {
+        mensaje.textContent = "¡Todos los barcos colocados! Empieza el juego.";
+        turnoJuego = true; // Empezamos el juego
+        ocultarTablero(); 
+        return;
+    }
+    
+    const tamaño = barcos[0]; // 1 barco
+    if (puedeColocarBarco(fila, columna, tamaño)) { // comprobamos si cabe
+        for (let i = 0; i < tamaño; i++) {
+            tableroJugador[fila][columna + i] = 1; // añadimos la posicion al tableor
+            let celda = document.querySelector(`.celda[data-fila='${fila}'][data-columna='${columna + i}']`);
+            celda.style.backgroundColor = "red"; // Mostramos el barco temporalmente
+        }
+        barcos.shift(); // Eliminamos ese barco de la lista
+    } else {
+        mensaje.textContent = "No se puede colocar el barco aquí.";
+    }
+}
+
+function puedeColocarBarco(fila, columna, tamaño) {
+    if (columna + tamaño > 10) return false; // asi no nos deja sacar el barco del tablero
+    for (let i = 0; i < tamaño; i++) {
+        if (tableroJugador[fila][columna + i] === 1) return false; // evitar poner una encima de otro
+    }
+    return true;
+}
+
+// ocultar tablero despues de colocar los barcos para que no se vean
+function ocultarTablero() {
+    const celdas = document.querySelectorAll(".celda");
+    celdas.forEach(celda => celda.style.backgroundColor = "#333");
+}
+
+function atacar(fila, columna) {
+    let celda = document.querySelector(`.celda[data-fila='${fila}'][data-columna='${columna}']`);
+    
+    if (tableroJugador[fila][columna] === 1) { // si hay acierto
+        celda.classList.add("tocado");
+        celda.style.backgroundColor = "red"; // ponemos la celda en rojo
+        tableroJugador[fila][columna] = 2; 
+        mensaje.textContent = "¡Tocado! Sigue atacando.";
+    } else { // si no hay barco
+        celda.classList.add("agua");
+        celda.style.backgroundColor = "blue"; // marcamos la celda
+        tableroJugador[fila][columna] = 3; // actualizamos el tablero
+        mensaje.textContent = "Agua. Intenta otra vez.";
+    }
+    
+    if (verificarFinJuego()) { // resivamos si ha finalizado el juego
+        mensaje.textContent = "¡Has hundido todos los barcos!";
+        turnoJuego = false; // finalizamos el juego
+    }
+}
+
+// Comprobamos si ya estan todos los barcos encontrados
+function verificarFinJuego() {
+    return tableroJugador.flat().every(celda => celda !== 1); // Si no quedan 1s, gana
+}
+
+crearTablero();
